@@ -1,0 +1,106 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+load("@rules_pkg//pkg:install.bzl", "pkg_install")
+load("@rules_pkg//pkg:mappings.bzl", "pkg_attributes", "pkg_filegroup", "pkg_files", "strip_prefix")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "rtk_localization_lib",
+    srcs = ["rtk_localization.cc"],
+    hdrs = ["rtk_localization.h"],
+    copts = ["-DMODULE_NAME=\\\"localization\\\""],
+    deps = [
+        "//modules/rtk_localization/proto:rtk_config_cc_proto",
+        "@com_google_googletest//:gtest",
+        "@core//cyber",
+        "@eigen",
+        "@wheelos_common//modules/common/math",
+        "@wheelos_common//modules/common/monitor_log",
+        "@wheelos_common//modules/common/util:util_tool",
+        "@wheelos_msgs//wheelos_msgs/basic_msgs:geometry_cc_proto",
+        "@wheelos_msgs//wheelos_msgs/localization_msgs:gps_cc_proto",
+        "@wheelos_msgs//wheelos_msgs/localization_msgs:imu_cc_proto",
+        "@wheelos_msgs//wheelos_msgs/localization_msgs:localization_cc_proto",
+        "@wheelos_msgs//wheelos_msgs/sensor_msgs:gnss_best_pose_cc_proto",
+        "@wheelos_msgs//wheelos_msgs/sensor_msgs:gnss_cc_proto",
+        "@wheelos_msgs//wheelos_msgs/sensor_msgs:ins_cc_proto",
+    ],
+)
+
+cc_library(
+    name = "rtk_localization_component_lib",
+    srcs = ["rtk_localization_component.cc"],
+    hdrs = ["rtk_localization_component.h"],
+    copts = ["-DMODULE_NAME=\\\"localization\\\""],
+    deps = [
+        ":rtk_localization_lib",
+        "@core//cyber",
+        "@wheelos_transform//modules/transform:transform_broadcaster",
+    ],
+    alwayslink = True,
+)
+
+cc_binary(
+    name = "librtk_localization_component.so",
+    linkshared = True,
+    linkstatic = False,
+    deps = [":rtk_localization_component_lib"],
+)
+
+cc_test(
+    name = "rtk_localization_test",
+    size = "small",
+    srcs = ["rtk_localization_test.cc"],
+    data = ["//modules/rtk_localization:testdata"],
+    deps = [
+        ":rtk_localization_lib",
+        "@bazel_tools//tools/cpp/runfiles",
+        "@com_google_googletest//:gtest_main",
+        "@core//cyber",
+        "@wheelos_common//modules/common/util",
+    ],
+)
+
+filegroup(
+    name = "testdata",
+    srcs = glob(["testdata/*"]),
+)
+
+filegroup(
+    name = "runtime_data",
+    srcs = [
+        "conf/rtk_localization.pb.txt",
+        "dag/dag_streaming_rtk_localization.dag",
+        "launch/rtk_localization.launch",
+    ],
+)
+
+pkg_files(
+    name = "package_files_data",
+    srcs = [":runtime_data"],
+    attributes = pkg_attributes(mode = "0644"),
+    prefix = "rtk_localization",
+    strip_prefix = strip_prefix.from_root("modules/rtk_localization"),
+)
+
+pkg_files(
+    name = "package_files_libraries",
+    srcs = [":librtk_localization_component.so"],
+    attributes = pkg_attributes(mode = "0755"),
+    prefix = "rtk_localization/lib",
+    strip_prefix = strip_prefix.from_root("modules/rtk_localization"),
+)
+
+pkg_filegroup(
+    name = "package_files",
+    srcs = [
+        ":package_files_data",
+        ":package_files_libraries",
+    ],
+)
+
+pkg_install(
+    name = "install_dir",
+    srcs = [":package_files"],
+    tags = ["manual"],
+)

@@ -1,0 +1,28 @@
+load("@rules_pkg//pkg:install.bzl", "pkg_install")
+load("@rules_pkg//pkg:mappings.bzl", "pkg_filegroup")
+
+filegroup(
+    name = "runtime_data",
+    srcs = [
+        "//modules/localization:runtime_data",
+        "//modules/ndt_localization:runtime_data",
+        "//modules/rtk_localization:runtime_data",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+pkg_filegroup(
+    name = "package_files",
+    srcs = [
+        "//modules/localization:package_files",
+        "//modules/ndt_localization:package_files",
+        "//modules/rtk_localization:package_files",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+pkg_install(
+    name = "install_dir",
+    srcs = [":package_files"],
+    tags = ["manual"],
+)
