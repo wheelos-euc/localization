@@ -6,19 +6,28 @@
 #include <cstdlib>
 #include <fstream>
 #include <limits>
+#include <memory>
 #include <stdexcept>
-
-#include "gtest/gtest.h"
+#include <string>
 
 #include "google/protobuf/text_format.h"
+#include "gtest/gtest.h"
+#include "tools/cpp/runfiles/runfiles.h"
 
 namespace apollo::localization::openloc_diagnostic {
 namespace {
 
 NativeLioHostConfig Profile() {
-  const std::string path = std::string(std::getenv("TEST_SRCDIR")) + "/" +
-                           std::getenv("TEST_WORKSPACE") +
-                           "/testdata/native_lio_profile.pb.txt";
+  std::string error;
+  std::unique_ptr<bazel::tools::cpp::runfiles::Runfiles> runfiles(
+      bazel::tools::cpp::runfiles::Runfiles::CreateForTest(
+          BAZEL_CURRENT_REPOSITORY, &error));
+  if (!runfiles) {
+    throw std::runtime_error(error);
+  }
+  const std::string path = runfiles->Rlocation(
+      "wheelos_localization/modules/localization/openloc_host/testdata/"
+      "native_lio_profile.pb.txt");
   std::ifstream input(path);
   const std::string text((std::istreambuf_iterator<char>(input)), {});
   NativeLioHostConfig profile;

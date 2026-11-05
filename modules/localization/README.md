@@ -135,10 +135,7 @@ and planning/control acceptance are not established by this integration.
 ## Dependencies
 
 Development resolves `openloc` through the opt-in root `.bazelrc.dev` override.
-`openloc.MODULE.bazel` carries the tested Eigen/GTSAM patches and consistent
-Boost 1.89 closure required by GTSAM/PCL; these are root-only Bazel overrides
-and affect the workspace dependency graph, not just this module. Host sources
-under `modules/localization/openloc_host` are part of this Localization
-package.
-No registry version has been published, and the formal lockfile is unchanged;
-non-development/release dependency resolution is not claimed.
+`openloc` and `wheelos_localization` consume `eigen@5.0.1` and
+`gtsam@4.3.0-alpha.1.bcr.1` directly from the WheelOS Bazel Central Registry
+without module-local patch overrides. Host sources under
+`modules/localization/openloc_host` are part of this Localization package.

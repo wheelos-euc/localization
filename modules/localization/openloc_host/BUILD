@@ -4,14 +4,6 @@ load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 
 package(default_visibility = ["//visibility:private"])
 
-exports_files(
-    [
-        "patches/eigen_required_unsupported_modules.patch",
-        "patches/gtsam_sl4_cassert.patch",
-    ],
-    visibility = ["//visibility:public"],
-)
-
 cc_library(
     name = "native_runtime",
     includes = ["."],
@@ -337,6 +329,7 @@ cc_test(
     data = ["testdata/native_lio_profile.pb.txt"],
     deps = [
         ":native_lio_config",
+        "@bazel_tools//tools/cpp/runfiles",
         "@com_google_googletest//:gtest_main",
         "@com_google_protobuf//:protobuf",
     ],
@@ -366,6 +359,7 @@ cc_test(
     name = "native_cyber_publisher_test",
     size = "small",
     srcs = ["native_cyber_publisher_test.cc"],
+    data = ["@core//cyber:cyber_conf"],
     deps = [
         ":native_cyber_publisher",
         "@com_google_googletest//:gtest",
@@ -452,7 +446,7 @@ cc_binary(
 
 cc_test(
     name = "native_imu_host_test",
-    size = "small",
+    size = "medium",
     srcs = [
         "native_global_test_input.h",
         "native_graph_test_input.h",

@@ -25,6 +25,7 @@ class NativeMapTest : public ::testing::Test {
   void TearDown() override {
     std::filesystem::remove(prefix + ".pcd");
     std::filesystem::remove(prefix + ".csv");
+    std::filesystem::remove(prefix + ".csv.innovations.csv");
     std::filesystem::remove(prefix + ".region.csv");
   }
   NativeMapJob Job(int index) {
@@ -239,6 +240,8 @@ TEST_F(NativeMapTest, ExpiredTaskIsDiscardedAndTaskExceptionsSurfaceAtFinish) {
   EXPECT_NE(journal.find("map_task_deadline_expired"), std::string::npos);
   file.close();
   std::filesystem::remove(prefix + ".csv");
+  std::filesystem::remove(prefix + ".csv.innovations.csv");
+  config.mutable_online_map()->set_task_deadline_ms(500);
   NativeGlobalWorker worker(config, {}, [](const NativeMapJob&) -> NativeMapMatch {
     throw std::runtime_error("explicit test matcher failure");
   });
@@ -300,6 +303,7 @@ TEST_F(NativeMapTest, ScanWaitsForOdometryFrontierAndShutdownReportsMissingFront
     EXPECT_EQ(worker.Sample(200).map_tasks_completed(), 1);
   }
   std::filesystem::remove(prefix + ".csv");
+  std::filesystem::remove(prefix + ".csv.innovations.csv");
   NativeGlobalWorker worker(config);
   worker.AddOdometry(test::MapOdometry(0), Clock::now());
   worker.AddRawMap(test::MapCloud(1), Clock::now());

@@ -6,8 +6,6 @@ load("@rules_pkg//pkg:mappings.bzl", "pkg_attributes", "pkg_filegroup", "pkg_fil
 
 package(default_visibility = ["//visibility:public"])
 
-exports_files(["openloc.MODULE.bazel"])
-
 proto_library(
     name = "localization_config_proto",
     srcs = ["proto/localization_config.proto"],
@@ -98,6 +96,7 @@ cc_test(
     name = "localization_graph_test",
     size = "medium",
     srcs = ["localization_graph_test.cc"],
+    data = ["@core//cyber:cyber_conf"],
     deps = [
         ":localization_adapter",
         "//modules/localization/openloc_host:native_graph_test_support",
@@ -109,7 +108,10 @@ cc_test(
     name = "localization_component_test",
     size = "small",
     srcs = ["localization_component_test.cc"],
-    data = ["conf/localization.pb.txt"],
+    data = [
+        "conf/localization.pb.txt",
+        "@core//cyber:cyber_conf",
+    ],
     deps = [
         ":localization_component_lib",
         "@bazel_tools//tools/cpp/runfiles",

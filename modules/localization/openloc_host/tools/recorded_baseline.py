@@ -189,7 +189,7 @@ def sources(workspace, native):
         for name in ("BUILD", "MODULE.bazel", ".bazelrc", ".bazelrc.dev")
     ]
     files += [p for p in workspace.iterdir() if p.suffix in (".cc", ".h", ".proto")]
-    for directory in ("tools", "testdata", "patches"):
+    for directory in ("tools", "testdata"):
         files += [
             p for p in (workspace / directory).rglob("*")
             if p.is_file() and "__pycache__" not in p.parts
