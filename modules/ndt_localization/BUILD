@@ -1,4 +1,5 @@
 load("@core//runtime:install.bzl", "pkg_install")
+load("@core//runtime:runtime.bzl", "runtime_module")
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 load("@rules_pkg//pkg:mappings.bzl", "pkg_attributes", "pkg_filegroup", "pkg_files", "strip_prefix")
 
@@ -151,4 +152,16 @@ pkg_install(
     name = "install_dir",
     srcs = [":package_files"],
     tags = ["manual"],
+)
+
+runtime_module(
+    name = "module",
+    components = [":libndt_localization_component.so"],
+    files = {
+        "params/velodyne64_height.yaml": "share/ndt_localization/velodyne64_height.yaml",
+        "runtime/ndt_localization.conf": "conf/ndt_localization/ndt_localization.conf",
+        "runtime/ndt_localization.dag": "dag/ndt_localization/ndt_localization.dag",
+        "runtime/ndt_localization.launch": "launch/ndt_localization/ndt_localization.launch",
+    },
+    module_name = "ndt_localization",
 )

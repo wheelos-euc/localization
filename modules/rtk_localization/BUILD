@@ -1,3 +1,4 @@
+load("@core//runtime:runtime.bzl", "runtime_module")
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 load("@rules_pkg//pkg:install.bzl", "pkg_install")
 load("@rules_pkg//pkg:mappings.bzl", "pkg_attributes", "pkg_filegroup", "pkg_files", "strip_prefix")
@@ -103,4 +104,15 @@ pkg_install(
     name = "install_dir",
     srcs = [":package_files"],
     tags = ["manual"],
+)
+
+runtime_module(
+    name = "module",
+    components = [":librtk_localization_component.so"],
+    files = {
+        "conf/rtk_localization.pb.txt": "conf/rtk_localization/rtk_localization.pb.txt",
+        "runtime/rtk_localization.dag": "dag/rtk_localization/rtk_localization.dag",
+        "runtime/rtk_localization.launch": "launch/rtk_localization/rtk_localization.launch",
+    },
+    module_name = "rtk_localization",
 )

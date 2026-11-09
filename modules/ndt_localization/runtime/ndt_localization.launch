@@ -1,0 +1,7 @@
+<cyber>
+  <module>
+    <name>ndt_localization</name>
+    <dag_conf>dag/ndt_localization/ndt_localization.dag</dag_conf>
+    <process_name>ndt_localization</process_name>
+  </module>
+</cyber>
