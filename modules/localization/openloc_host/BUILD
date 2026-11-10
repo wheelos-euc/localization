@@ -27,7 +27,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":native_runtime",
-        "@openloc//:native_odometry",
+        "//modules/localization/openloc:native_odometry",
     ],
 )
 
@@ -66,7 +66,7 @@ cc_library(
     hdrs = ["native_lio_config.h"],
     deps = [
         ":native_lio_host_config_cc_proto",
-        "@openloc//:native_odometry_types",
+        "//modules/localization/openloc:native_odometry_types",
     ],
 )
 
@@ -92,8 +92,8 @@ cc_library(
     deps = [
         ":native_graph_transport",
         ":native_publication",
-        "@openloc//:native_motion_bootstrap",
-        "@openloc//:native_odometry",
+        "//modules/localization/openloc:native_motion_bootstrap",
+        "//modules/localization/openloc:native_odometry",
     ],
 )
 
@@ -116,7 +116,7 @@ cc_library(
     deps = [
         ":native_joint_graph_cc_proto",
         ":native_publication",
-        "@openloc//:fixed_lag_global_alignment",
+        "//modules/localization/openloc:fixed_lag_global_alignment",
     ],
 )
 
@@ -136,7 +136,7 @@ cc_library(
     hdrs = ["native_publication.h"],
     deps = [
         ":native_odometry_diagnostic_cc_proto",
-        "@openloc//:native_odometry_types",
+        "//modules/localization/openloc:native_odometry_types",
     ],
 )
 
@@ -173,7 +173,7 @@ cc_library(
         ":native_map_matcher",
         ":native_publication",
         ":native_structured_gnss_adapter",
-        "@openloc//:diagnostic_global_alignment",
+        "//modules/localization/openloc:diagnostic_global_alignment",
     ],
 )
 
@@ -185,8 +185,8 @@ cc_library(
         ":native_global_diagnostic_cc_proto",
         "@eigen",
         "@local_config_pcl//:io",
-        "@openloc//:diagnostic_regional_search",
-        "@openloc//:scan_to_map",
+        "//modules/localization/openloc:diagnostic_regional_search",
+        "//modules/localization/openloc:scan_to_map",
         "@wheelos_msgs//wheelos_msgs/sensor_msgs:pointcloud_cc_proto",
     ],
 )
@@ -211,7 +211,7 @@ cc_library(
     hdrs = ["native_gga_adapter.h"],
     deps = [
         ":native_global_diagnostic_cc_proto",
-        "@openloc//:gnss_position_gate",
+        "//modules/localization/openloc:gnss_position_gate",
         "@proj",
     ],
 )
@@ -222,7 +222,7 @@ cc_library(
     hdrs = ["native_structured_gnss_adapter.h"],
     deps = [
         ":native_global_diagnostic_cc_proto",
-        "@openloc//:gnss_position_gate",
+        "//modules/localization/openloc:gnss_position_gate",
         "@proj",
         "@wheelos_msgs//wheelos_msgs/sensor_msgs:gnss_best_pose_cc_proto",
         "@wheelos_msgs//wheelos_msgs/sensor_msgs:heading_cc_proto",
@@ -308,7 +308,7 @@ cc_test(
         ":native_global_cyber",
         "@com_google_googletest//:gtest",
         "@com_google_protobuf//:protobuf",
-        "@openloc//:native_odometry",
+        "//modules/localization/openloc:native_odometry",
     ],
 )
 
@@ -364,7 +364,7 @@ cc_test(
         ":native_cyber_publisher",
         "@com_google_googletest//:gtest",
         "@core//cyber",
-        "@openloc//:native_odometry",
+        "//modules/localization/openloc:native_odometry",
     ],
 )
 
@@ -439,7 +439,7 @@ cc_binary(
     deps = [
         ":native_cyber_publisher",
         "@core//cyber",
-        "@openloc//:native_odometry",
+        "//modules/localization/openloc:native_odometry",
         "@wheelos_msgs//wheelos_msgs/sensor_msgs:imu_cc_proto",
     ],
 )
@@ -475,8 +475,8 @@ cc_test(
         "@com_google_googletest//:gtest",
         "@com_google_protobuf//:protobuf",
         "@core//cyber",
-        "@openloc//:native_odometry",
-        "@openloc//:native_odometry_types",
+        "//modules/localization/openloc:native_odometry",
+        "//modules/localization/openloc:native_odometry_types",
         "@wheelos_msgs//wheelos_msgs/sensor_msgs:gnss_cc_proto",
         "@wheelos_msgs//wheelos_msgs/sensor_msgs:imu_cc_proto",
         "@wheelos_msgs//wheelos_msgs/sensor_msgs:pointcloud_cc_proto",

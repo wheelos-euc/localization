@@ -1,0 +1,54 @@
+// Copyright 2026 WheelOS. All Rights Reserved.
+// Licensed under the Apache License, Version 2.0 (the "License");
+
+#pragma once
+
+#include "candidates/common/types.h"
+
+namespace openloc {
+namespace localization {
+namespace unified {
+
+class ContinuousOutput {
+ public:
+  explicit ContinuousOutput(const LocalConfig& config) : config_(config) {}
+
+  void Reset(const LocalState& internal);
+  Result Advance(const LocalState& previous_internal,
+                 const LocalState& internal,
+                 const Matrix15d& error_transition, double dt,
+                 const Matrix15d* process_covariance = nullptr);
+  const LocalState& state() const { return state_; }
+  bool active() const { return active_; }
+  bool correction_budget_exceeded() const {
+    return correction_budget_exceeded_;
+  }
+  const Result& correction_status() const { return correction_status_; }
+  // Conditional deterministic map only: the caller retains the complete joint
+  // covariance of both internal endpoints, prior output and memory. These
+  // inputs must never be treated as independent process noise.
+  Result LinearizeLastStep(ContinuousOutputErrorTransition* transition) const;
+
+ private:
+  // This 15D covariance supports finite propagation and degradation budgets.
+  // It is not a qualified joint marginal with the corrected internal state or
+  // reused local geometry, and must not authorize LocalMotionIncrement export.
+  LocalConfig config_;
+  LocalState state_;
+  Eigen::Vector3d pose_correction_velocity_ = Eigen::Vector3d::Zero();
+  bool active_ = false;
+  bool correction_budget_exceeded_ = false;
+  Result correction_status_;
+  struct StepInput {
+    LocalState previous_internal;
+    LocalState internal;
+    LocalState output;
+    Eigen::Vector3d memory;
+    double dt;
+  };
+  std::optional<StepInput> last_step_;
+};
+
+}  // namespace unified
+}  // namespace localization
+}  // namespace openloc

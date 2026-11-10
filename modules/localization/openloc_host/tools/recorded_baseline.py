@@ -454,7 +454,7 @@ def main():
         default=workspace / "testdata/recorded_baseline.json",
     )
     parser.add_argument(
-        "--openloc-root", type=Path, default=workspace / "../../pkgs/openloc"
+        "--openloc-root", type=Path, default=workspace.parent / "openloc"
     )
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--repeats", type=int, default=1)

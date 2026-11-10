@@ -1,6 +1,7 @@
 # OpenLoc Apollo localization
 
-This module embeds `pkgs/openloc` through its bounded
+This module contains the middleware-independent OpenLoc estimator in
+[`openloc`](openloc/BUILD) and integrates it through the bounded
 [`openloc_host`](openloc_host/BUILD) host libraries. One raw
 IMU/LiDAR owner produces continuous local motion; one explicitly selected
 `FixedLagGlobalAlignment` owner consumes its joint motion, shared-scan map
@@ -134,8 +135,7 @@ and planning/control acceptance are not established by this integration.
 
 ## Dependencies
 
-Development resolves `openloc` through the opt-in root `.bazelrc.dev` override.
-`openloc` and `wheelos_localization` consume `eigen@5.0.1` and
-`gtsam@4.3.0-alpha.1.bcr.1` directly from the WheelOS Bazel Central Registry
-without module-local patch overrides. Host sources under
-`modules/localization/openloc_host` are part of this Localization package.
+The estimator and its host integration are built within the
+`wheelos_localization` module. Eigen and GTSAM are declared by that module;
+host sources under `modules/localization/openloc_host` are part of the same
+package.

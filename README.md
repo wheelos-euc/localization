@@ -2,9 +2,10 @@
 
 Independent `wheelos_localization` Bzlmod package. It owns the Apollo component
 under `modules/localization`, NDT and RTK components under
-`modules/ndt_localization` and `modules/rtk_localization`, and OpenLoc Cyber
-host support under `modules/localization/openloc_host`; the middleware-
-independent estimator library remains in `openloc`.
+`modules/ndt_localization` and `modules/rtk_localization`, and the OpenLoc
+estimator plus Cyber host support under `modules/localization/openloc` and
+`modules/localization/openloc_host`. OpenLoc remains a middleware-independent
+C++ library internally, not a separate Bzlmod package.
 
 From the Apollo workspace, in the managed development container:
 
