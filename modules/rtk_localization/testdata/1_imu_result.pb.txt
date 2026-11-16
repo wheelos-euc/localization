@@ -1,6 +1,7 @@
 header {
-  timestamp_sec: 1173545122.69
+  timestamp_sec: 1173545130.001
 }
+measurement_time: 1173545122.69
 imu {
   linear_acceleration {
     x: -0.69958364482034463

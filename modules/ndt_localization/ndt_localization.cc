@@ -16,6 +16,7 @@
 
 #include "modules/ndt_localization/ndt_localization.h"
 
+#include <cmath>
 #include <memory>
 #include <string>
 
@@ -99,7 +100,13 @@ bool NDTLocalization::Init() {
 // receive odometry message
 void NDTLocalization::OdometryCallback(
     const std::shared_ptr<localization::Gps>& odometry_msg) {
-  double odometry_time = odometry_msg->header().timestamp_sec();
+  if (!odometry_msg || !odometry_msg->has_measurement_time() ||
+      !std::isfinite(odometry_msg->measurement_time()) ||
+      odometry_msg->measurement_time() <= 0) {
+    AERROR << "GPS odometry message is missing measurement_time.";
+    return;
+  }
+  double odometry_time = odometry_msg->measurement_time();
   static double pre_odometry_time = odometry_time;
   double time_delay = odometry_time - pre_odometry_time;
   if (time_delay > 0.1) {
@@ -235,6 +242,12 @@ void NDTLocalization::LidarCallback(
 
 void NDTLocalization::OdometryStatusCallback(
     const std::shared_ptr<drivers::gnss::InsStat>& status_msg) {
+  if (!status_msg || !status_msg->has_measurement_time() ||
+      !std::isfinite(status_msg->measurement_time()) ||
+      status_msg->measurement_time() <= 0) {
+    AERROR << "INS status message is missing measurement_time.";
+    return;
+  }
   std::unique_lock<std::mutex> lock(odometry_status_list_mutex_);
   if (odometry_status_list_.size() < odometry_status_list_max_size_) {
     odometry_status_list_.push_back(*status_msg);
@@ -277,7 +290,7 @@ void NDTLocalization::ComposeLocalizationEstimate(
   localization->Clear();
   FillLocalizationMsgHeader(localization);
 
-  localization->set_measurement_time(odometry_msg->header().timestamp_sec());
+  localization->set_measurement_time(odometry_msg->measurement_time());
   auto mutable_pose = localization->mutable_pose();
   mutable_pose->mutable_position()->set_x(pose.translation().x());
   mutable_pose->mutable_position()->set_y(pose.translation().y());
@@ -368,7 +381,7 @@ void NDTLocalization::ComposeLocalizationStatus(
   apollo::common::Header* header = localization_status->mutable_header();
   double timestamp = apollo::cyber::Clock::NowInSeconds();
   header->set_timestamp_sec(timestamp);
-  localization_status->set_measurement_time(status.header().timestamp_sec());
+  localization_status->set_measurement_time(status.measurement_time());
 
   if (!status.has_pos_type()) {
     localization_status->set_fusion_status(MeasureState::ERROR);
@@ -593,7 +606,7 @@ bool NDTLocalization::FindNearestOdometryStatus(
   auto nearest_itr = odometry_status_list.end();
   for (auto itr = odometry_status_list.begin();
        itr != odometry_status_list.end(); ++itr) {
-    double diff = std::abs(itr->header().timestamp_sec() - odometry_timestamp);
+    double diff = std::abs(itr->measurement_time() - odometry_timestamp);
     if (diff < timestamp_diff_sec) {
       timestamp_diff_sec = diff;
       nearest_itr = itr;

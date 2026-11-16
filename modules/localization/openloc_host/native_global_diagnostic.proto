@@ -34,9 +34,8 @@ message NativeGlobalHostConfig {
 }
 
 message NativeStructuredGnssConfig {
-  // Explicit source contract: zero for Unix records; GPS epoch conversion
-  // includes the declared leap-second offset. Never infer from wall time.
-  required double measurement_to_unix_offset_s = 1;
+  reserved 1;
+  reserved "measurement_to_unix_offset_s";
   required uint32 utm_zone = 2;
   required bool northern_hemisphere = 3;
   required double origin_easting_m = 4;

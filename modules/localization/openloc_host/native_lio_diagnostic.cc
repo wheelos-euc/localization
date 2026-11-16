@@ -35,8 +35,8 @@ int main(int argc, char** argv) {
       throw std::runtime_error("cannot read native LIO host profile");
     const auto config = host::LocalConfiguration(profile);
     const auto extrinsic = host::LidarExtrinsic(profile);
-    if (profile.recorded_receive_time_from_header())
-      std::cerr << "OpenLoc RECORDED DIAGNOSTIC MODE: original header receive "
+    if (profile.recorded_source_publish_time_from_header())
+      std::cerr << "OpenLoc RECORDED DIAGNOSTIC MODE: source publication "
                    "time, not live wall-clock freshness\n";
     if (!apollo::cyber::Init(argv[0]))
       throw std::runtime_error("Cyber initialization failed");
@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
       if (!node) throw std::runtime_error("cannot create diagnostic node");
       host::NativeCyberPublisher publisher(
           node, config.max_sample_age,
-          profile.recorded_receive_time_from_header());
+          profile.recorded_source_publish_time_from_header());
       std::shared_ptr<apollo::cyber::Writer<host::NativeJointOdometryInput>> graph_output;
       host::NativePublication graph_publication(
           config.max_sample_age, profile.graph().recorded_source_clock());
@@ -61,7 +61,8 @@ int main(int argc, char** argv) {
           std::lock_guard<std::mutex> serial(graph_publish_mutex);
           graph_publication.Update(frame.nominal, frame.integrity, arrival);
           auto odometry = graph_publication.Sample(apollo::cyber::Time::Now().ToSecond());
-          odometry.set_recorded_input(profile.recorded_receive_time_from_header());
+          odometry.set_recorded_input(
+              profile.recorded_source_publish_time_from_header());
           // Source-clock replay retains actual processing delay separately.
           // Live mode never renews source time to manufacture freshness.
           const std::string unavailable_detail = odometry.detail();
@@ -79,7 +80,7 @@ int main(int argc, char** argv) {
           imu_ack;
       std::shared_ptr<apollo::cyber::Writer<host::NativeRecordedIngressAck>>
           lidar_ack;
-      if (profile.recorded_receive_time_from_header()) {
+      if (profile.recorded_source_publish_time_from_header()) {
         imu_ack = node->CreateWriter<host::NativeRecordedIngressAck>(
             profile.imu_topic() + "/recorded_ack");
         lidar_ack = node->CreateWriter<host::NativeRecordedIngressAck>(
@@ -144,7 +145,8 @@ int main(int argc, char** argv) {
                 graph_publication.Invalidate({u::Reason::INVALID_INPUT, reason});
                 auto source = graph_publication.Sample(
                     apollo::cyber::Time::Now().ToSecond());
-                source.set_recorded_input(profile.recorded_receive_time_from_header());
+                source.set_recorded_input(
+                    profile.recorded_source_publish_time_from_header());
                 const auto packet = host::UnavailableNativeGraph(
                     std::move(source), profile.graph().motion_error_model_id(), reason);
                 if (!graph_output->Write(packet))
@@ -179,14 +181,15 @@ int main(int argc, char** argv) {
           reader_config,
           [&](const std::shared_ptr<apollo::drivers::gnss::Imu>& message) {
             const auto arrival = host::NativePublication::Clock::now();
-            const double receive = profile.recorded_receive_time_from_header()
-                                       ? message->header().timestamp_sec()
-                                       : apollo::cyber::Time::Now().ToSecond();
+            const double receive =
+                profile.recorded_source_publish_time_from_header()
+                    ? message->header().timestamp_sec()
+                    : apollo::cyber::Time::Now().ToSecond();
             try {
               std::unique_lock<std::mutex> lock(input_mutex);
               if (error) return;
               if (!message->has_measurement_time() ||
-                  (profile.recorded_receive_time_from_header() &&
+                  (profile.recorded_source_publish_time_from_header() &&
                    (!message->has_header() ||
                     !message->header().has_timestamp_sec() ||
                     !message->header().has_sequence_num() ||
@@ -213,9 +216,8 @@ int main(int argc, char** argv) {
                   !rate.has_x() || !rate.has_y() || !rate.has_z())
                 throw std::runtime_error("missing calibrated FLU IMU axes");
               u::ImuSample sample;
-              sample.stamp = {message->measurement_time() +
-                                  profile.imu_measurement_to_unix_offset(),
-                              receive, imu_sequence + 1, "unix"};
+              sample.stamp = {message->measurement_time(), receive,
+                              imu_sequence + 1, "unix"};
               sample.acceleration = {force.x(), force.y(), force.z()};
               sample.angular_velocity = {rate.x(), rate.y(), rate.z()};
               const auto sequence_header = message->has_header() &&
@@ -239,25 +241,25 @@ int main(int argc, char** argv) {
           reader_config,
           [&](const std::shared_ptr<apollo::drivers::PointCloud>& message) {
             const auto arrival = host::NativePublication::Clock::now();
-            const double receive = profile.recorded_receive_time_from_header()
-                                       ? message->header().timestamp_sec()
-                                       : apollo::cyber::Time::Now().ToSecond();
+            const double receive =
+                profile.recorded_source_publish_time_from_header()
+                    ? message->header().timestamp_sec()
+                    : apollo::cyber::Time::Now().ToSecond();
             // Decode separately from the IMU enqueue mutex.
             try {
               if (!message->has_measurement_time() ||
-                  (profile.recorded_receive_time_from_header() &&
+                  (profile.recorded_source_publish_time_from_header() &&
                    (!message->has_header() ||
                     !message->header().has_timestamp_sec() ||
                     !message->header().has_sequence_num() ||
                     message->header().sequence_num() == 0)) ||
                   message->frame_id() != config.lidar_frame ||
-                  message->point_size() == 0 || message->point_size() > 1000000 ||
+                  message->point_size() == 0 ||
+                  message->point_size() > 1000000 ||
                   message->ByteSizeLong() > 32 * 1024 * 1024)
                 throw std::runtime_error("invalid bounded raw point cloud");
               u::LidarScan scan;
-              scan.stamp = {message->measurement_time() +
-                                profile.lidar_measurement_to_unix_offset(),
-                            receive, 0, "unix"};
+              scan.stamp = {message->measurement_time(), receive, 0, "unix"};
               scan.frame_id = config.lidar_frame;
               scan.calibration_id = config.lidar_calibration_id;
               scan.base_from_lidar = extrinsic;
@@ -271,8 +273,7 @@ int main(int argc, char** argv) {
                     !std::isfinite(point.z()))
                   throw std::runtime_error("raw point lacks finite XYZ/time");
                 const double time =
-                    static_cast<double>(point.timestamp()) / 1e9 +
-                    profile.lidar_measurement_to_unix_offset();
+                    static_cast<double>(point.timestamp()) / 1e9;
                 if (time < previous_time || time > scan.stamp.time)
                   throw std::runtime_error(
                       "point times not ordered within scan");
@@ -294,8 +295,7 @@ int main(int argc, char** argv) {
                 if (valid_index++ % stride != 0) continue;
                 scan.points.push_back(
                     {{point.x(), point.y(), point.z()},
-                     static_cast<double>(point.timestamp()) / 1e9 +
-                         profile.lidar_measurement_to_unix_offset()});
+                     static_cast<double>(point.timestamp()) / 1e9});
               }
               AINFO << "OpenLoc raw scan points=" << message->point_size()
                     << " no_returns=" << no_returns << " stride=" << stride
@@ -380,7 +380,7 @@ int main(int argc, char** argv) {
       std::ofstream summary(profile.journal() + ".ingress.csv");
       summary << "imu_enqueued,scans_enqueued,recorded_receive_time\n"
               << imu_sequence << ',' << scan_sequence << ','
-              << profile.recorded_receive_time_from_header() << '\n';
+              << profile.recorded_source_publish_time_from_header() << '\n';
       summary.close();
       if (!summary) throw std::runtime_error("incomplete ingress journal");
     }

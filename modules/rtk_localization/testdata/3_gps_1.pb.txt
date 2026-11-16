@@ -1,6 +1,7 @@
 header {
-  timestamp_sec: 1173545122.22
+  timestamp_sec: 1173545130.003
 }
+measurement_time: 1173545122.22
 localization {
   position {
     x: 357.51331791372041

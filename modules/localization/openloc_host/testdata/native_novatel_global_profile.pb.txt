@@ -15,7 +15,6 @@ maximum_odometry_age_ms: 200
 structured_gnss {
   # Example GPS -> Unix for an explicitly verified 18 s GPS-UTC difference.
   # September Unix-timestamped records require zero instead.
-  measurement_to_unix_offset_s: 315964782
   utm_zone: 50
   northern_hemisphere: true
   origin_easting_m: 500000

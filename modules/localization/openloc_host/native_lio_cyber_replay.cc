@@ -74,11 +74,9 @@ void Replay(const std::filesystem::path& input,
     throw std::invalid_argument(
         "target graph replay requires local graph export, global observation "
         "and no separate raw map topic");
-  if (!profile.recorded_receive_time_from_header() ||
-      profile.imu_measurement_to_unix_offset() != 0 ||
-      profile.lidar_measurement_to_unix_offset() != 0)
+  if (!profile.recorded_source_publish_time_from_header())
     throw std::runtime_error(
-        "Cyber replay requires original Unix/header receive mode");
+        "Cyber replay requires source publication timestamps in headers");
   if (!map_topic.empty() &&
       (map_topic == profile.lidar_topic() || map_topic == profile.imu_topic() ||
        map_topic == global_topic || map_topic == gga_topic))

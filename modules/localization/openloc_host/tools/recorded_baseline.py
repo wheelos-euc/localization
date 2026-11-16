@@ -151,13 +151,13 @@ def profile_text(source, arm, session, protocol):
     text = "# Original Unix input, manual extrinsic, diagnostic only.\n"
     text += "".join(f"{name}: {json.dumps(value)}\n" for name, value in fields.items())
     text += (
-        "imu_measurement_to_unix_offset: 0\nlidar_measurement_to_unix_offset: 0\n"
         "imu_from_lidar_translation { "
         f'x: {extrinsic["tx"]} y: {extrinsic["ty"]} z: {extrinsic["tz"]}'
         " }\nimu_from_lidar_rotation { qx: 0 qy: 0 qz: 0 qw: 1 }\n"
         f'bootstrap_voxel_m: {protocol["bootstrap_voxel_m"]}\n'
         f'lidar_commit_delay_ms: {protocol["lidar_commit_delay_ms"]}\n'
-        "allow_imu_only_initialization: true\nrecorded_receive_time_from_header: true\n"
+        "allow_imu_only_initialization: true\n"
+        "recorded_source_publish_time_from_header: true\n"
     )
     for parameter in rows(source / "config.csv"):
         finite(parameter["value"])

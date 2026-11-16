@@ -66,8 +66,8 @@ void ValidateConfiguration(const LocalizationConfig& config) {
       global.has_raw_gga() || global.has_map_topic() ||
       global.has_reset_topic() || global.has_alignment_session() ||
       global.reset_consumers_size() != 0 ||
-      local.recorded_receive_time_from_header() || global.recorded_input() ||
-      local.graph().recorded_source_clock() ||
+      local.recorded_source_publish_time_from_header() ||
+      global.recorded_input() || local.graph().recorded_source_clock() ||
       global.target_graph().recorded_source_clock() ||
       !global.target_graph().motion_error_model_qualified() ||
       !qualification.IsInitialized() ||
@@ -121,9 +121,7 @@ native::ImuSample DecodeImu(const drivers::gnss::Imu& input,
     throw std::invalid_argument("instantaneous calibrated FLU IMU required");
   }
   native::ImuSample sample;
-  sample.stamp = {input.measurement_time() +
-                      config.local().imu_measurement_to_unix_offset(),
-                  receive, sequence, "unix"};
+  sample.stamp = {input.measurement_time(), receive, sequence, "unix"};
   CheckTime(sample.stamp.time, receive);
   sample.acceleration = ReadVector(input.linear_acceleration());
   sample.angular_velocity = ReadVector(input.angular_velocity());
@@ -142,8 +140,7 @@ native::LidarScan DecodeCloud(const drivers::PointCloud& input,
     throw std::invalid_argument("bounded timed LiDAR cloud required");
   }
   native::LidarScan scan;
-  const double offset = config.local().lidar_measurement_to_unix_offset();
-  scan.stamp = {input.measurement_time() + offset, receive, sequence, "unix"};
+  scan.stamp = {input.measurement_time(), receive, sequence, "unix"};
   CheckTime(scan.stamp.time, receive);
   scan.frame_id = config.local().lidar_frame();
   scan.calibration_id = config.local().calibration_id();
@@ -152,7 +149,7 @@ native::LidarScan DecodeCloud(const drivers::PointCloud& input,
   double previous = 0;
   for (const auto& point : input.point()) {
     const auto xyz = ReadVector(point);
-    const double time = static_cast<double>(point.timestamp()) / 1e9 + offset;
+    const double time = static_cast<double>(point.timestamp()) / 1e9;
     if (!point.has_timestamp() || point.timestamp() == 0 || time <= 0 ||
         time < previous || time > scan.stamp.time) {
       throw std::invalid_argument(
@@ -167,8 +164,7 @@ native::LidarScan DecodeCloud(const drivers::PointCloud& input,
   for (const auto& point : input.point()) {
     const auto xyz = ReadVector(point);
     if (xyz.isZero(0) || index++ % stride != 0) continue;
-    scan.points.push_back(
-        {xyz, static_cast<double>(point.timestamp()) / 1e9 + offset});
+    scan.points.push_back({xyz, static_cast<double>(point.timestamp()) / 1e9});
   }
   return scan;
 }

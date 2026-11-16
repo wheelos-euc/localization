@@ -147,6 +147,7 @@ TEST_F(RTKLocalizationTest, ComposeLocalizationMsg) {
 
     EXPECT_EQ(1, localization.header().sequence_num());
     EXPECT_STREQ("localization", localization.header().module_name().c_str());
+    EXPECT_DOUBLE_EQ(gps.measurement_time(), localization.measurement_time());
     EXPECT_NEAR(expected_result.pose().position().x(),
                 localization.pose().position().x(), 1.0e-7);
     EXPECT_NEAR(expected_result.pose().position().y(),

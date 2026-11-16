@@ -54,16 +54,17 @@ TEST(StructuredGnssAdapterTest, BadFixAndMissingAccuracyResetDwellBeforeRecovery
   EXPECT_FALSE(adapter.Position(test::BestPose(7), Receive(7)).observation);
 }
 
-TEST(StructuredGnssAdapterTest, ExplicitClockRejectsStaleWrongEpochAndMissingMeasurement) {
+TEST(StructuredGnssAdapterTest, RejectsStaleMeasurementAndMissingTime) {
   auto config = test::Config("");
   test::EnableStructuredGnss(&config);
-  config.mutable_structured_gnss()->set_measurement_to_unix_offset_s(315964782);
   NativeStructuredGnssAdapter adapter(config);
   adapter.Reset("vehicle-test", 1);
-  const auto gps = adapter.Position(test::BestPose(0), Receive(0) + 315964782000000000LL);
-  EXPECT_EQ(gps.measurement_ns, 315964882000000000LL);
-  EXPECT_NE(gps.status.code(), loc::StatusCode::kInvalidArgument);
-  EXPECT_EQ(adapter.Position(test::BestPose(1), Receive(1)).status.message(),
+  const auto accepted = adapter.Position(test::BestPose(0), Receive(0));
+  EXPECT_EQ(accepted.measurement_ns, 100000000000LL);
+  EXPECT_EQ(accepted.status.code(), loc::StatusCode::kPending);
+  auto stale = test::BestPose(1);
+  stale.set_measurement_time(90);
+  EXPECT_EQ(adapter.Position(stale, Receive(1)).status.message(),
             "structured_gnss_stale_or_future_measurement");
   auto missing = test::BestPose(2);
   missing.clear_measurement_time();

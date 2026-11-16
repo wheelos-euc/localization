@@ -143,19 +143,18 @@ TEST(LocalizationAdapter, RefusesTemplateAndMismatchedLocalGlobalContracts) {
   config.mutable_global()->clear_target_graph();
   EXPECT_THROW(ValidateConfiguration(config), std::invalid_argument);
   config = Config();
-  config.mutable_local()->set_recorded_receive_time_from_header(true);
+  config.mutable_local()->set_recorded_source_publish_time_from_header(true);
   EXPECT_THROW(ValidateConfiguration(config), std::invalid_argument);
   config = Config();
   config.set_status_topic(config.localization_topic());
   EXPECT_THROW(ValidateConfiguration(config), std::invalid_argument);
 }
 
-TEST(LocalizationAdapter, RequiresInstantaneousFluImuWithExplicitClock) {
+TEST(LocalizationAdapter, RequiresInstantaneousFluImuWithUtcMeasurementTime) {
   auto config = Config();
-  config.mutable_local()->set_imu_measurement_to_unix_offset(10);
   drivers::gnss::Imu input;
   input.mutable_header()->set_frame_id("imu");
-  input.set_measurement_time(90);
+  input.set_measurement_time(100);
   input.mutable_linear_acceleration()->set_x(1);
   input.mutable_linear_acceleration()->set_y(2);
   input.mutable_linear_acceleration()->set_z(9.8);

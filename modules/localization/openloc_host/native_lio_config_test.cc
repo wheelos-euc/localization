@@ -83,7 +83,7 @@ TEST(NativeLioConfigTest, RejectsTruncatedCountsAndUncalibratedTransforms) {
   EXPECT_NO_THROW(LocalConfiguration(profile));
   profile.set_require_live_source_sequences(true);
   EXPECT_NO_THROW(LocalConfiguration(profile));
-  profile.set_recorded_receive_time_from_header(true);
+  profile.set_recorded_source_publish_time_from_header(true);
   EXPECT_THROW(LocalConfiguration(profile), std::invalid_argument);
 }
 
@@ -103,7 +103,7 @@ TEST(NativeLioConfigTest, JointExportIsExplicitBoundedAndPreservesNumericProfile
   EXPECT_DOUBLE_EQ(config.native_imu_sample_period, 0.01);
   graph->set_recorded_source_clock(true);
   EXPECT_THROW(LocalConfiguration(profile), std::invalid_argument);
-  profile.set_recorded_receive_time_from_header(true);
+  profile.set_recorded_source_publish_time_from_header(true);
   EXPECT_NO_THROW(LocalConfiguration(profile));
   graph->set_odometry_stride(20);
   EXPECT_THROW(LocalConfiguration(profile), std::invalid_argument);

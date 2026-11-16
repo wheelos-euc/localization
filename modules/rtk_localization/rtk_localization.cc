@@ -16,12 +16,14 @@
 
 #include "modules/rtk_localization/rtk_localization.h"
 
+#include <cmath>
 #include <limits>
+
+#include "wheelos_msgs/sensor_msgs/gnss_best_pose.pb.h"
 
 #include "cyber/time/clock.h"
 #include "modules/common/math/quaternion.h"
 #include "modules/common/util/string_util.h"
-#include "wheelos_msgs/sensor_msgs/gnss_best_pose.pb.h"
 
 namespace apollo {
 namespace localization {
@@ -44,6 +46,15 @@ void RTKLocalization::InitConfig(const rtk_config::Config &config) {
 
 void RTKLocalization::GpsCallback(
     const std::shared_ptr<localization::Gps> &gps_msg) {
+  if (!gps_msg || !gps_msg->has_measurement_time() ||
+      !std::isfinite(gps_msg->measurement_time()) ||
+      gps_msg->measurement_time() <= 0 ||
+      !gps_msg->header().has_timestamp_sec() ||
+      !std::isfinite(gps_msg->header().timestamp_sec()) ||
+      gps_msg->header().timestamp_sec() <= 0) {
+    AERROR << "GPS message is missing valid publish or measurement time.";
+    return;
+  }
   double time_delay = last_received_timestamp_sec_
                           ? Clock::NowInSeconds() - last_received_timestamp_sec_
                           : last_received_timestamp_sec_;
@@ -93,6 +104,12 @@ void RTKLocalization::GpsCallback(
 
 void RTKLocalization::GpsStatusCallback(
     const std::shared_ptr<drivers::gnss::InsStat> &status_msg) {
+  if (!status_msg || !status_msg->has_measurement_time() ||
+      !std::isfinite(status_msg->measurement_time()) ||
+      status_msg->measurement_time() <= 0) {
+    AERROR << "GPS status message is missing measurement_time.";
+    return;
+  }
   std::unique_lock<std::mutex> lock(gps_status_list_mutex_);
   if (gps_status_list_.size() < gps_status_list_max_size_) {
     gps_status_list_.push_back(*status_msg);
@@ -104,6 +121,16 @@ void RTKLocalization::GpsStatusCallback(
 
 void RTKLocalization::ImuCallback(
     const std::shared_ptr<localization::CorrectedImu> &imu_msg) {
+  if (!imu_msg || !imu_msg->has_measurement_time() ||
+      !std::isfinite(imu_msg->measurement_time()) ||
+      imu_msg->measurement_time() <= 0 ||
+      !imu_msg->header().has_timestamp_sec() ||
+      !std::isfinite(imu_msg->header().timestamp_sec()) ||
+      imu_msg->header().timestamp_sec() <= 0) {
+    AERROR << "Corrected IMU message is missing valid publish or measurement "
+              "time.";
+    return;
+  }
   std::unique_lock<std::mutex> lock(imu_list_mutex_);
   if (imu_list_.size() < imu_list_max_size_) {
     imu_list_.push_back(*imu_msg);
@@ -124,13 +151,13 @@ void RTKLocalization::GetLocalizationStatus(
   *localization_status = last_localization_status_result_;
 }
 
-void RTKLocalization::RunWatchDog(double gps_timestamp) {
+void RTKLocalization::RunWatchDog(double gps_publish_time) {
   if (!enable_watch_dog_) {
     return;
   }
 
-  // check GPS time stamp against system time
-  double gps_delay_sec = Clock::NowInSeconds() - gps_timestamp;
+  // Watch message freshness against its host publish time, not sensor time.
+  double gps_delay_sec = Clock::NowInSeconds() - gps_publish_time;
   double gps_service_delay = Clock::NowInSeconds() - service_started_time;
   int64_t gps_delay_cycle_cnt =
       static_cast<int64_t>(gps_delay_sec * localization_publish_freq_);
@@ -145,7 +172,7 @@ void RTKLocalization::RunWatchDog(double gps_timestamp) {
     monitor_logger_.ERROR(ss.str());
   }
 
-  // check IMU time stamp against system time
+  // check IMU message freshness against its host publish time
   std::unique_lock<std::mutex> lock(imu_list_mutex_);
   auto imu_msg = imu_list_.back();
   lock.unlock();
@@ -175,7 +202,7 @@ void RTKLocalization::PrepareLocalizationMsg(
     const localization::Gps &gps_msg, LocalizationEstimate *localization,
     LocalizationStatus *localization_status) {
   // find the matching gps and imu message
-  double gps_time_stamp = gps_msg.header().timestamp_sec();
+  double gps_time_stamp = gps_msg.measurement_time();
   CorrectedImu imu_msg;
   FindMatchingIMU(gps_time_stamp, &imu_msg);
   ComposeLocalizationMsg(gps_msg, imu_msg, localization);
@@ -200,7 +227,7 @@ void RTKLocalization::FillLocalizationStatusMsg(
   apollo::common::Header *header = localization_status->mutable_header();
   double timestamp = apollo::cyber::Clock::NowInSeconds();
   header->set_timestamp_sec(timestamp);
-  localization_status->set_measurement_time(status.header().timestamp_sec());
+  localization_status->set_measurement_time(status.measurement_time());
 
   if (!status.has_pos_type()) {
     localization_status->set_fusion_status(MeasureState::ERROR);
@@ -235,7 +262,7 @@ void RTKLocalization::ComposeLocalizationMsg(
 
   FillLocalizationMsgHeader(localization);
 
-  localization->set_measurement_time(gps_msg.header().timestamp_sec());
+  localization->set_measurement_time(gps_msg.measurement_time());
 
   // combine gps and imu
   auto mutable_pose = localization->mutable_pose();
@@ -342,7 +369,7 @@ bool RTKLocalization::FindMatchingIMU(const double gps_timestamp_sec,
   // timestamp
   auto imu_it = imu_list.begin();
   for (; imu_it != imu_list.end(); ++imu_it) {
-    if ((*imu_it).header().timestamp_sec() - gps_timestamp_sec >
+    if ((*imu_it).measurement_time() - gps_timestamp_sec >
         std::numeric_limits<double>::min()) {
       break;
     }
@@ -351,10 +378,9 @@ bool RTKLocalization::FindMatchingIMU(const double gps_timestamp_sec,
   if (imu_it != imu_list.end()) {  // found one
     if (imu_it == imu_list.begin()) {
       AERROR << "IMU queue too short or request too old. "
-             << "Oldest timestamp[" << imu_list.front().header().timestamp_sec()
-             << "], Newest timestamp["
-             << imu_list.back().header().timestamp_sec() << "], GPS timestamp["
-             << gps_timestamp_sec << "]";
+             << "Oldest timestamp[" << imu_list.front().measurement_time()
+             << "], Newest timestamp[" << imu_list.back().measurement_time()
+             << "], GPS timestamp[" << gps_timestamp_sec << "]";
       *imu_msg = imu_list.front();  // the oldest imu
     } else {
       // here is the normal case
@@ -382,11 +408,11 @@ bool RTKLocalization::FindMatchingIMU(const double gps_timestamp_sec,
       return false;
     }
 
-    if (std::fabs(imu_msg->header().timestamp_sec() - gps_timestamp_sec) >
+    if (std::fabs(imu_msg->measurement_time() - gps_timestamp_sec) >
         gps_imu_time_diff_threshold_) {
       // 20ms threshold to report error
       AERROR << "Cannot find Matching IMU. IMU messages too old. "
-             << "Newest timestamp[" << imu_list.back().header().timestamp_sec()
+             << "Newest timestamp[" << imu_list.back().measurement_time()
              << "], GPS timestamp[" << gps_timestamp_sec << "]";
     }
   }
@@ -398,31 +424,28 @@ bool RTKLocalization::InterpolateIMU(const CorrectedImu &imu1,
                                      const CorrectedImu &imu2,
                                      const double timestamp_sec,
                                      CorrectedImu *imu_msg) {
-  if (!(imu1.header().has_timestamp_sec() &&
-        imu2.header().has_timestamp_sec())) {
-    AERROR << "imu1 and imu2 has no header or no timestamp_sec in header";
+  if (!imu1.has_measurement_time() || !imu2.has_measurement_time()) {
+    AERROR << "imu1 and imu2 have no measurement_time";
     return false;
   }
-  if (timestamp_sec < imu1.header().timestamp_sec()) {
+  if (timestamp_sec < imu1.measurement_time()) {
     AERROR << "[InterpolateIMU1]: the given time stamp["
            << FORMAT_TIMESTAMP(timestamp_sec)
            << "] is older than the 1st message["
-           << FORMAT_TIMESTAMP(imu1.header().timestamp_sec()) << "]";
+           << FORMAT_TIMESTAMP(imu1.measurement_time()) << "]";
     *imu_msg = imu1;
-  } else if (timestamp_sec > imu2.header().timestamp_sec()) {
+  } else if (timestamp_sec > imu2.measurement_time()) {
     AERROR << "[InterpolateIMU2]: the given time stamp[" << timestamp_sec
-           << "] is newer than the 2nd message["
-           << imu2.header().timestamp_sec() << "]";
+           << "] is newer than the 2nd message[" << imu2.measurement_time()
+           << "]";
     *imu_msg = imu2;
   } else {
     *imu_msg = imu1;
-    imu_msg->mutable_header()->set_timestamp_sec(timestamp_sec);
+    imu_msg->set_measurement_time(timestamp_sec);
 
-    double time_diff =
-        imu2.header().timestamp_sec() - imu1.header().timestamp_sec();
+    double time_diff = imu2.measurement_time() - imu1.measurement_time();
     if (fabs(time_diff) >= 0.001) {
-      double frac1 =
-          (timestamp_sec - imu1.header().timestamp_sec()) / time_diff;
+      double frac1 = (timestamp_sec - imu1.measurement_time()) / time_diff;
 
       if (imu1.imu().has_angular_velocity() &&
           imu2.imu().has_angular_velocity()) {
@@ -477,7 +500,7 @@ bool RTKLocalization::FindNearestGpsStatus(const double gps_timestamp_sec,
   auto nearest_itr = gps_status_list.end();
   for (auto itr = gps_status_list.begin(); itr != gps_status_list.end();
        ++itr) {
-    double diff = std::abs(itr->header().timestamp_sec() - gps_timestamp_sec);
+    double diff = std::abs(itr->measurement_time() - gps_timestamp_sec);
     if (diff < timestamp_diff_sec) {
       timestamp_diff_sec = diff;
       nearest_itr = itr;

@@ -17,8 +17,6 @@ local {
   # Use RAW timed points in the LiDAR frame, not already deskewed/transformed
   # compensator output. Fill this with the driver's raw topic.
   session: ""
-  imu_measurement_to_unix_offset: 0
-  lidar_measurement_to_unix_offset: 0
   bootstrap_voxel_m: 0.2
   allow_imu_only_initialization: false
   # Fresh, writable path per process run. Existing journals are never replaced.
@@ -80,7 +78,6 @@ global {
   maximum_odometry_age_ms: 200
   structured_gnss {
     # Declare actual source time. GPS seconds need the verified epoch/leap offset.
-    measurement_to_unix_offset_s: 0
     utm_zone: 0
     northern_hemisphere: true
     origin_easting_m: 0

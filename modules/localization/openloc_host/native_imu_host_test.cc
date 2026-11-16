@@ -165,7 +165,7 @@ void StrictLiveSequenceFailure(bool lidar, bool missing_header = false,
     ASSERT_TRUE(google::protobuf::TextFormat::ParseFromString(text, &config));
   }
   config.set_session(session);
-  config.set_recorded_receive_time_from_header(false);
+  config.set_recorded_source_publish_time_from_header(false);
   config.set_require_live_source_sequences(true);
   config.set_imu_topic("/openloc/test/" + session + "/imu");
   config.set_lidar_topic("/openloc/test/" + session + "/lidar");
@@ -520,7 +520,7 @@ void RawPointCloudReachesLocalGeometry(bool recorded) {
     ASSERT_TRUE(google::protobuf::TextFormat::ParseFromString(text, &config));
   }
   config.set_session(session);
-  config.set_recorded_receive_time_from_header(recorded);
+  config.set_recorded_source_publish_time_from_header(recorded);
   config.set_lidar_commit_delay_ms(recorded ? 50 : 0);
   config.set_imu_topic("/openloc/test/lio_imu/" + session);
   config.set_lidar_topic("/openloc/test/lidar/" + session);
@@ -720,7 +720,7 @@ void RecordedProtocolFailure(bool conflict) {
   NativeLioHostConfig config;
   ASSERT_TRUE(google::protobuf::TextFormat::ParseFromString(text, &config));
   config.set_session(session);
-  config.set_recorded_receive_time_from_header(true);
+  config.set_recorded_source_publish_time_from_header(true);
   config.set_imu_topic("/openloc/test/" + session + "/imu");
   config.set_lidar_topic("/openloc/test/" + session + "/lidar");
   config.set_journal(::testing::TempDir() + session + ".csv");
@@ -813,7 +813,7 @@ void ConnectedRawSources(bool target_graph) {
   const auto session = std::string(target_graph ? "connected-target-" : "connected-") +
                        std::to_string(getpid());
   local.set_session(session);
-  local.set_recorded_receive_time_from_header(true);
+  local.set_recorded_source_publish_time_from_header(true);
   local.set_startup_task_timeout_ms(target_graph ? 0 : 500);
   local.set_lidar_commit_delay_ms(target_graph ? 0 : 50);
   local.set_imu_topic("/openloc/test/" + session + "/imu");

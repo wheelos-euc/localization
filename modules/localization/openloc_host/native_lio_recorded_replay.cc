@@ -31,9 +31,6 @@ void Replay(const std::filesystem::path& input,
     throw std::runtime_error("raw replay output must be a new directory");
   const auto config = host::LocalConfiguration(profile);
   const auto extrinsic = host::LidarExtrinsic(profile);
-  if (profile.imu_measurement_to_unix_offset() != 0 ||
-      profile.lidar_measurement_to_unix_offset() != 0)
-    throw std::runtime_error("prepared timestamps must already use Unix epoch");
   const auto imu =
       Read(input / "imu.csv", "timestamp_ns,receive_ns,ax,ay,az,gx,gy,gz", 8);
   const auto scans = Read(input / "scans.csv", "end_ns,receive_ns,points", 3);

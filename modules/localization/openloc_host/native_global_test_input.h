@@ -116,7 +116,6 @@ inline void EnableReset(NativeGlobalHostConfig* config) {
 
 inline void EnableStructuredGnss(NativeGlobalHostConfig* config, bool heading = true) {
   auto* policy = config->mutable_structured_gnss();
-  policy->set_measurement_to_unix_offset_s(0);
   policy->set_utm_zone(50);
   policy->set_northern_hemisphere(true);
   policy->set_origin_easting_m(500000);

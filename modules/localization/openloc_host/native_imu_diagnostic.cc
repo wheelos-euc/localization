@@ -17,19 +17,15 @@ namespace u = ::openloc::localization::unified;
 namespace host = apollo::localization::openloc_diagnostic;
 
 int main(int argc, char** argv) {
-  if (argc != 4) {
-    std::cerr << "Usage: native_imu_diagnostic IMU_TOPIC "
-                 "MEASUREMENT_TO_UNIX_OFFSET_SECONDS SESSION\n"
+  if (argc != 3) {
+    std::cerr << "Usage: native_imu_diagnostic IMU_TOPIC SESSION\n"
                  "Explicit diagnostic IMU-only quiet-window startup; no "
                  "LiDAR, wheel, map, GNSS or production output.\n";
     return 1;
   }
   bool initialized = false;
   try {
-    std::size_t end = 0;
-    const double offset = std::stod(argv[2], &end);
-    if (end != std::string(argv[2]).size() || !std::isfinite(offset) ||
-        std::string(argv[1]).empty() || std::string(argv[3]).empty())
+    if (std::string(argv[1]).empty() || std::string(argv[2]).empty())
       throw std::invalid_argument("invalid explicit sensor time/topic/session");
     if (!apollo::cyber::Init(argv[0]))
       throw std::runtime_error("Cyber initialization failed");
@@ -39,7 +35,7 @@ int main(int argc, char** argv) {
           apollo::cyber::CreateNode("openloc_native_imu_diagnostic");
       if (!node) throw std::runtime_error("cannot create diagnostic node");
       u::LocalConfig config;
-      config.session = argv[3];
+      config.session = argv[2];
       config.allow_imu_only_initialization = true;
       ::openloc::localization::NativeOdometry owner(config);
       const auto configured = owner.ValidateConfig();
@@ -64,8 +60,8 @@ int main(int argc, char** argv) {
                   !message->has_angular_velocity())
                 throw std::runtime_error("incomplete raw IMU message");
               u::ImuSample sample;
-              sample.stamp = {message->measurement_time() + offset, receive,
-                              ++sequence, "unix"};
+              sample.stamp = {message->measurement_time(), receive, ++sequence,
+                              "unix"};
               const auto& acceleration = message->linear_acceleration();
               const auto& rate = message->angular_velocity();
               if (!acceleration.has_x() || !acceleration.has_y() ||

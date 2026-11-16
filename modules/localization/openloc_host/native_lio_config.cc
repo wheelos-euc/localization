@@ -18,12 +18,10 @@ u::LocalConfig LocalConfiguration(const NativeLioHostConfig& profile) {
       profile.session().empty() || profile.journal().empty() ||
       profile.startup_task_timeout_ms() > 500 ||
       (profile.require_live_source_sequences() &&
-       profile.recorded_receive_time_from_header()) ||
+       profile.recorded_source_publish_time_from_header()) ||
       (profile.lidar_commit_delay_ms() != 0 &&
        (profile.lidar_commit_delay_ms() < 5 ||
         profile.lidar_commit_delay_ms() > 100)) ||
-      !std::isfinite(profile.imu_measurement_to_unix_offset()) ||
-      !std::isfinite(profile.lidar_measurement_to_unix_offset()) ||
       !std::isfinite(profile.bootstrap_voxel_m()) ||
       profile.bootstrap_voxel_m() < 0.1 || profile.bootstrap_voxel_m() > 0.5)
     throw std::invalid_argument("incomplete or invalid native host profile");
@@ -38,7 +36,8 @@ u::LocalConfig LocalConfiguration(const NativeLioHostConfig& profile) {
   if (profile.has_graph()) {
     const auto& graph = profile.graph();
     if (!graph.IsInitialized() ||
-        (graph.recorded_source_clock() && !profile.recorded_receive_time_from_header()) ||
+        (graph.recorded_source_clock() &&
+         !profile.recorded_source_publish_time_from_header()) ||
         graph.output_topic().rfind("/openloc/diagnostic/", 0) != 0 ||
         graph.output_topic() == profile.imu_topic() ||
         graph.output_topic() == profile.lidar_topic() ||

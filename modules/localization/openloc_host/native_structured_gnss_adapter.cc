@@ -60,9 +60,8 @@ NativeStructuredGnssAdapter::NativeStructuredGnssAdapter(
     const NativeGlobalHostConfig& config) : config_(config) {
   const auto& policy = config.structured_gnss();
   if (!config.has_structured_gnss() || config.has_raw_gga() ||
-      !policy.IsInitialized() || policy.utm_zone() < 1 || policy.utm_zone() > 60 ||
-      !std::isfinite(policy.measurement_to_unix_offset_s()) ||
-      !std::isfinite(policy.origin_easting_m()) ||
+      !policy.IsInitialized() || policy.utm_zone() < 1 ||
+      policy.utm_zone() > 60 || !std::isfinite(policy.origin_easting_m()) ||
       !std::isfinite(policy.origin_northing_m()) ||
       !std::isfinite(policy.lever_x()) || !std::isfinite(policy.lever_y()) ||
       !std::isfinite(policy.lever_z()) || policy.preparation_id().empty() ||
@@ -109,8 +108,7 @@ void NativeStructuredGnssAdapter::Reset(const std::string& session,
 
 loc::Status NativeStructuredGnssAdapter::Time(double source, int64_t receive,
                                              int64_t* measurement) const {
-  const long double ns = (static_cast<long double>(source) +
-      config_.structured_gnss().measurement_to_unix_offset_s()) * 1e9L;
+  const long double ns = static_cast<long double>(source) * 1e9L;
   if (!std::isfinite(source) || source <= 0 || !std::isfinite(ns) ||
       ns <= 0 || ns > std::numeric_limits<int64_t>::max() - 1.0L || receive <= 0)
     return Invalid("invalid_structured_gnss_source_time");

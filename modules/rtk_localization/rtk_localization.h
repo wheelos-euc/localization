@@ -50,7 +50,7 @@ class RTKLocalization {
   void GetLocalizationStatus(LocalizationStatus *localization_status);
 
  private:
-  void RunWatchDog(double gps_timestamp);
+  void RunWatchDog(double gps_publish_time);
 
   void PrepareLocalizationMsg(const localization::Gps &gps_msg,
                               LocalizationEstimate *localization,

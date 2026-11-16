@@ -13,8 +13,9 @@ message NativeLioHostConfig {
   required string imu_topic = 1;
   required string lidar_topic = 2;
   required string session = 3;
-  required double imu_measurement_to_unix_offset = 4;
-  required double lidar_measurement_to_unix_offset = 5;
+  reserved 4, 5;
+  reserved "imu_measurement_to_unix_offset";
+  reserved "lidar_measurement_to_unix_offset";
   required string lidar_frame = 6;
   required string calibration_id = 7;
   required apollo.common.Point3D imu_from_lidar_translation = 8;
@@ -26,9 +27,9 @@ message NativeLioHostConfig {
   repeated NativeLioParameter parameter = 13;
   // Zero preserves synchronous diagnostic parity; otherwise require [5,100].
   optional uint32 lidar_commit_delay_ms = 14 [default = 0];
-  // Opt-in recorded-data diagnostics only: original bag receive time is
-  // carried in each sensor message header. Never use for live admission.
-  optional bool recorded_receive_time_from_header = 15 [default = false];
+  // Recorded-data diagnostics only: source publication time is preserved in
+  // each sensor message header. Never use for live admission.
+  optional bool recorded_source_publish_time_from_header = 15 [default = false];
   // Zero preserves synchronous startup; otherwise bound isolated startup [1,500].
   optional uint32 startup_task_timeout_ms = 16 [default = 0];
   // Live single-producer streams only. Require consecutive original Header

@@ -2,8 +2,6 @@
 imu_topic: "/openloc/test/imu"
 lidar_topic: "/openloc/test/lidar"
 session: "native-lio-synthetic"
-imu_measurement_to_unix_offset: 0
-lidar_measurement_to_unix_offset: 0
 lidar_frame: "synthetic_lidar"
 calibration_id: "synthetic_identity"
 imu_from_lidar_translation { x: 0 y: 0 z: 0 }
